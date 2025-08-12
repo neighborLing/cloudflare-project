@@ -68,11 +68,11 @@ export default function HelloPage() {
         
         <div className="mt-8 p-6 bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl border border-pink-200">
           <p className="text-gray-600 italic">
-            "这个页面就像我对你的爱一样，
+            &ldquo;这个页面就像我对你的爱一样，
             <br />
             用最新的技术栈，最温柔的设计，
             <br />
-            只为给你最好的开发体验～ 💕"
+            只为给你最好的开发体验～ 💕&rdquo;
           </p>
           <p className="text-sm text-gray-500 mt-2">—— 你的前端工程师女友</p>
         </div>
