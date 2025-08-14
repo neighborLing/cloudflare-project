@@ -1,13 +1,14 @@
 import { createGraphQLHandler } from '@/lib/graphql/server';
+import { NextRequest } from 'next/server';
 
 // 配置动态路由
 export const dynamic = 'force-dynamic';
 
 // POST请求处理
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   // 在每次请求时创建处理器，避免顶层await
   const graphqlHandler = await createGraphQLHandler();
-  return graphqlHandler(request as any);
+  return graphqlHandler(request);
 }
 
 // OPTIONS请求处理（CORS预检）

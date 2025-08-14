@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -26,7 +26,7 @@ export default function Home() {
   const [clearHistory] = useMutation(CLEAR_CHAT_HISTORY);
 
   const serverMessages: Message[] = data?.getChatHistory || [];
-  const messages = [...serverMessages, ...localMessages];
+  const messages = useMemo(() => [...serverMessages, ...localMessages], [serverMessages, localMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -201,24 +201,25 @@ export default function Home() {
                     <div className="prose prose-sm max-w-none break-words overflow-wrap-anywhere whitespace-break-spaces prose-headings:text-gray-800 prose-p:text-gray-700 prose-strong:text-gray-800 prose-em:text-gray-600 prose-code:text-purple-600 prose-code:bg-purple-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-800 prose-blockquote:border-purple-300 prose-blockquote:bg-purple-50 prose-ul:text-gray-700 prose-ol:text-gray-700 prose-li:text-gray-700">
                       <ReactMarkdown
                         components={{
-                          code({ node, className, children, ...props }: any) {
+                          code(props: React.HTMLProps<HTMLElement> & { children?: React.ReactNode }) {
+                            const { className, children } = props;
                             const match = /language-(\w+)/.exec(className || '');
                             const isInline = !match;
                             return !isInline ? (
-                              <SyntaxHighlighter
-                                style={tomorrow as any}
-                                language={match[1]}
-                                PreTag="div"
-                                className="rounded-lg my-2"
-                                {...props}
-                              >
-                                {String(children).replace(/\n$/, '')}
-                              </SyntaxHighlighter>
-                            ) : (
-                              <code className="bg-purple-100 text-purple-700 px-1 py-0.5 rounded text-sm font-mono break-words overflow-wrap-anywhere whitespace-break-spaces" {...props}>
-                                {children}
-                              </code>
-                            );
+                                <SyntaxHighlighter
+                                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                  style={tomorrow as any}
+                                  language={match[1]}
+                                  PreTag="div"
+                                  className="rounded-lg my-2"
+                                >
+                                  {String(children).replace(/\n$/, '')}
+                                </SyntaxHighlighter>
+                              ) : (
+                                <code className="bg-purple-100 text-purple-700 px-1 py-0.5 rounded text-sm font-mono break-words overflow-wrap-anywhere whitespace-break-spaces">
+                                  {children}
+                                </code>
+                              );
                           },
                           h1: ({ children }) => <h1 className="text-xl font-bold text-gray-800 mb-2 break-words overflow-wrap-anywhere whitespace-break-spaces">{children}</h1>,
                           h2: ({ children }) => <h2 className="text-lg font-bold text-gray-800 mb-2 break-words overflow-wrap-anywhere whitespace-break-spaces">{children}</h2>,

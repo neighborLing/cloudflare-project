@@ -8,8 +8,14 @@ let chatHistory: Array<{
   timestamp: string;
 }> = [];
 
+// 定义消息类型
+interface ChatMessage {
+  role: string;
+  content: string;
+}
+
 // 模拟AI聊天API调用
-async function callChatAPI(messages: any[], model: string = 'deepseek-chat') {
+async function callChatAPI(messages: ChatMessage[], model: string = 'deepseek-chat') {
   try {
     // 调用实际的AI API
     const apiUrl = 'http://localhost:8787/api/chat';
@@ -70,7 +76,7 @@ export const resolvers = {
 
   Mutation: {
     // 发送聊天消息
-    sendChatMessage: async (_: any, { input }: { input: any }) => {
+    sendChatMessage: async (_: unknown, { input }: { input: { message: string; systemMessage?: string; model?: string } }) => {
       try {
         const { message, systemMessage = 'You are a helpful assistant.', model = 'deepseek-chat' } = input;
         
