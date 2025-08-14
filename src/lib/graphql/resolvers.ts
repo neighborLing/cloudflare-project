@@ -11,18 +11,46 @@ let chatHistory: Array<{
 // 模拟AI聊天API调用
 async function callChatAPI(messages: any[], model: string = 'deepseek-chat') {
   try {
-    // 这里可以调用实际的AI API，比如OpenAI、DeepSeek等
-    // 现在先返回一个模拟响应
-    const response = {
-      choices: [{
-        message: {
-          content: `这是通过GraphQL接口返回的AI回复～ 你刚才说："${messages[messages.length - 1]?.content}" 💘`
-        }
-      }]
-    };
+    // 调用实际的AI API
+    const apiUrl = 'http://localhost:8787/api/chat';
     
-    return response;
+    const requestData = {
+      model: model,
+      messages: messages,
+      stream: false
+    };
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const responseData = await response.json();
+    
+    // 检查响应数据结构
+    if (responseData.choices && responseData.choices[0] && responseData.choices[0].message) {
+      return responseData;
+    } else if (responseData.content) {
+      // 处理其他格式的响应
+      return {
+        choices: [{
+          message: {
+            content: responseData.content
+          }
+        }]
+      };
+    } else {
+      throw new Error('AI API返回了意外的响应格式');
+    }
   } catch (error) {
+    console.error('AI API调用错误:', error);
     throw new Error(`AI API调用失败: ${error}`);
   }
 }

@@ -17,14 +17,16 @@ export default function GraphQLChatPage() {
   const [inputMessage, setInputMessage] = useState('');
   const [systemMessage, setSystemMessage] = useState('You are a helpful assistant.');
   const [showSettings, setShowSettings] = useState(false);
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // GraphQL查询和变更
-  const { data: chatData, loading: historyLoading, refetch } = useQuery(GET_CHAT_HISTORY);
+  const { data, loading: historyLoading, refetch } = useQuery(GET_CHAT_HISTORY);
   const [sendMessage, { loading: sendingMessage }] = useMutation(SEND_CHAT_MESSAGE);
   const [clearHistory] = useMutation(CLEAR_CHAT_HISTORY);
 
-  const messages: Message[] = chatData?.getChatHistory || [];
+  const serverMessages: Message[] = data?.getChatHistory || [];
+  const messages = [...serverMessages, ...localMessages];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -37,27 +39,42 @@ export default function GraphQLChatPage() {
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || sendingMessage) return;
 
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: inputMessage,
+      role: 'user',
+      timestamp: new Date().toISOString(),
+    };
+
+    // 立即显示用户消息
+    setLocalMessages(prev => [...prev, userMessage]);
+    const currentMessage = inputMessage;
+    setInputMessage('');
+
     try {
       const variables: SendChatMessageVariables = {
         input: {
-          message: inputMessage,
+          message: currentMessage,
           systemMessage,
           model: 'deepseek-chat',
         },
       };
 
       await sendMessage({ variables });
-      setInputMessage('');
-      // 重新获取聊天历史
+      // 清空本地消息并重新获取完整历史
+      setLocalMessages([]);
       await refetch();
     } catch (error) {
       console.error('发送消息失败:', error);
+      // 发送失败时，移除本地消息
+      setLocalMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
     }
   };
 
   const handleClearHistory = async () => {
     try {
       await clearHistory();
+      setLocalMessages([]);
       await refetch();
     } catch (error) {
       console.error('清空历史失败:', error);
@@ -181,24 +198,24 @@ export default function GraphQLChatPage() {
                   }`}
                 >
                   {message.role === 'assistant' ? (
-                    <div className="prose prose-sm max-w-none">
+                    <div className="prose prose-sm max-w-none break-words overflow-wrap-anywhere whitespace-break-spaces prose-headings:text-gray-800 prose-p:text-gray-700 prose-strong:text-gray-800 prose-em:text-gray-600 prose-code:text-purple-600 prose-code:bg-purple-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-800 prose-blockquote:border-purple-300 prose-blockquote:bg-purple-50 prose-ul:text-gray-700 prose-ol:text-gray-700 prose-li:text-gray-700">
                       <ReactMarkdown
                         components={{
-                          code: ({ node, className, children, ...props }: any) => {
+                          code({ node, className, children, ...props }: any) {
                             const match = /language-(\w+)/.exec(className || '');
                             const isInline = !match;
-                            return !isInline && match ? (
+                            return !isInline ? (
                               <SyntaxHighlighter
                                 style={tomorrow as any}
                                 language={match[1]}
                                 PreTag="div"
-                                className="rounded-lg text-sm"
+                                className="rounded-lg my-2"
                                 {...props}
                               >
                                 {String(children).replace(/\n$/, '')}
                               </SyntaxHighlighter>
                             ) : (
-                              <code className="bg-purple-100 text-purple-800 px-1 py-0.5 rounded text-sm" {...props}>
+                              <code className="bg-purple-100 text-purple-700 px-1 py-0.5 rounded text-sm font-mono break-words overflow-wrap-anywhere whitespace-break-spaces" {...props}>
                                 {children}
                               </code>
                             );
@@ -211,10 +228,27 @@ export default function GraphQLChatPage() {
                           ol: ({ children }) => <ol className="list-decimal list-inside text-gray-700 mb-2 space-y-1 break-words overflow-wrap-anywhere whitespace-break-spaces">{children}</ol>,
                           li: ({ children }) => <li className="text-gray-700 break-words overflow-wrap-anywhere whitespace-break-spaces">{children}</li>,
                           blockquote: ({ children }) => (
-                            <blockquote className="border-l-4 border-blue-300 bg-blue-50 pl-4 py-2 my-2 italic text-gray-600 break-words overflow-wrap-anywhere whitespace-break-spaces">
+                            <blockquote className="border-l-4 border-purple-300 bg-purple-50 pl-4 py-2 my-2 italic text-gray-600 break-words overflow-wrap-anywhere whitespace-break-spaces">
                               {children}
                             </blockquote>
                           ),
+                          strong: ({ children }) => <strong className="font-bold text-gray-800 break-words overflow-wrap-anywhere whitespace-break-spaces">{children}</strong>,
+                          em: ({ children }) => <em className="italic text-gray-600 break-words overflow-wrap-anywhere whitespace-break-spaces">{children}</em>,
+                          a: ({ href, children }) => (
+                            <a href={href} className="text-purple-600 hover:text-purple-800 underline break-words overflow-wrap-anywhere whitespace-break-spaces" target="_blank" rel="noopener noreferrer">
+                              {children}
+                            </a>
+                          ),
+                          table: ({ children }) => (
+                            <div className="overflow-x-auto my-2">
+                              <table className="min-w-full border border-gray-300 rounded-lg">{children}</table>
+                            </div>
+                          ),
+                          thead: ({ children }) => <thead className="bg-gray-100">{children}</thead>,
+                          tbody: ({ children }) => <tbody>{children}</tbody>,
+                          tr: ({ children }) => <tr className="border-b border-gray-200">{children}</tr>,
+                          th: ({ children }) => <th className="px-3 py-2 text-left font-semibold text-gray-800 border-r border-gray-300 last:border-r-0 break-words overflow-wrap-anywhere whitespace-break-spaces">{children}</th>,
+                          td: ({ children }) => <td className="px-3 py-2 text-gray-700 border-r border-gray-300 last:border-r-0 break-words overflow-wrap-anywhere whitespace-break-spaces">{children}</td>,
                         }}
                       >
                         {message.content || '💭 AI正在思考中...'}
@@ -240,7 +274,7 @@ export default function GraphQLChatPage() {
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="输入你的消息... (支持Markdown格式)"
+              placeholder="输入你的消息... (Enter发送，Shift+Enter换行)"
               className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none text-gray-800"
               rows={3}
               disabled={sendingMessage}
@@ -248,7 +282,7 @@ export default function GraphQLChatPage() {
             <button
               onClick={handleSendMessage}
               disabled={!inputMessage.trim() || sendingMessage}
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:from-blue-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[100px]"
+              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
             >
               {sendingMessage ? (
                 <div className="flex items-center space-x-2">
@@ -256,18 +290,13 @@ export default function GraphQLChatPage() {
                   <span>发送中</span>
                 </div>
               ) : (
-                <div className="flex items-center space-x-2">
-                  <span>发送</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                </div>
+                <span>发送 💘</span>
               )}
             </button>
           </div>
-          <div className="mt-2 text-xs text-gray-500 text-center">
-            💡 按 Enter 发送，Shift + Enter 换行 | 🚀 GraphQL驱动的现代化聊天体验
-          </div>
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            支持Markdown语法 • 代码高亮 • GraphQL驱动
+          </p>
         </div>
       </div>
     </div>

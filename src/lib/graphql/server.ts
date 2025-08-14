@@ -54,7 +54,15 @@ export async function createGraphQLHandler() {
         },
       });
       
-      return NextResponse.json(result, {
+      // 提取实际的GraphQL响应数据
+      let responseData;
+      if (result.body.kind === 'single') {
+        responseData = result.body.singleResult;
+      } else {
+        responseData = { errors: [{ message: 'Unexpected response format' }] };
+      }
+      
+      return NextResponse.json(responseData, {
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
