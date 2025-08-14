@@ -1,4 +1,29 @@
 import Image from "next/image";
+import ReactMarkdown from "react-markdown";
+
+const markdownContent = `
+# Markdown 测试
+
+这是一个 **粗体文本** 和 *斜体文本* 的示例。
+
+## 代码块
+
+\`\`\`javascript
+function hello() {
+  console.log("Hello World!");
+}
+\`\`\`
+
+## 列表
+
+- 项目 1
+- 项目 2
+- 项目 3
+
+## 链接
+
+[访问聊天页面](/chat)
+`;
 
 export default function Home() {
   return (
@@ -12,6 +37,11 @@ export default function Home() {
           height={38}
           priority
         />
+        
+        <div className="prose prose-lg max-w-none">
+          <ReactMarkdown>{markdownContent}</ReactMarkdown>
+        </div>
+        
         <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
           <li className="mb-2 tracking-[-.01em]">
             Get started by editing{" "}
