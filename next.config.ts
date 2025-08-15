@@ -1,10 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 移除 output: 'export' 以支持 API 路由
+  // Cloudflare Pages 配置 - 支持 API 路由
   trailingSlash: true,
   skipTrailingSlashRedirect: true,
-  // 移除 distDir 配置，使用默认的 .next 目录
   images: {
     unoptimized: true
   },
