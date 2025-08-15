@@ -18,7 +18,13 @@ const nextConfig: NextConfig = {
   // 生产环境优化
   ...(process.env.NODE_ENV === 'production' && {
     generateBuildId: () => 'build',
-  })
+  }),
+  // 排除缓存文件和不必要的文件
+  webpack: (config, { isServer }) => {
+    // 确保缓存不被包含在输出中
+    config.cache = false;
+    return config;
+  }
 };
 
 export default nextConfig;
