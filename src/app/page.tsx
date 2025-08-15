@@ -25,8 +25,10 @@ export default function Home() {
   const [sendMessage, { loading: sendingMessage }] = useMutation(SEND_CHAT_MESSAGE);
   const [clearHistory] = useMutation(CLEAR_CHAT_HISTORY);
 
-  const serverMessages: Message[] = data?.getChatHistory || [];
-  const messages = useMemo(() => [...serverMessages, ...localMessages], [serverMessages, localMessages]);
+  const messages = useMemo(() => {
+    const serverMessages: Message[] = data?.getChatHistory || [];
+    return [...serverMessages, ...localMessages];
+  }, [data?.getChatHistory, localMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
