@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   // Cloudflare Pages 配置 - 支持 API 路由
   trailingSlash: true,
   skipTrailingSlashRedirect: true,
+  // 配置静态导出
+  distDir: 'dist',
   images: {
     unoptimized: true
   },
